@@ -43,9 +43,9 @@ LSPConnection {
         });
         
         if (settings[\enabled].asBoolean) {
-            StartUp.add({
+            {
                 connection = LSPConnection().start;
-            })
+            }.defer(0.0001)
         };
         
         Log('LanguageServer.quark').level = \error;
@@ -72,7 +72,7 @@ LSPConnection {
         outstandingRequests = ();
         workspaceFolders = List();
         
-        Log('LanguageServer.quark').level = settings[\logLevel];
+        Log('LanguageServer.quark').level = settings[\logLevel].asSymbol;
         
         this.addDependant({
             |server, message, value|
@@ -353,3 +353,5 @@ NilResponse {
     }
     // Placeholder for nil responses, since nil signifies an empty slot in a dictionary.
 }
+
+
