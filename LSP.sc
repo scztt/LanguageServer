@@ -277,12 +277,16 @@ LSPConnection {
     prHandleResponse {
         |id, result|
         
-        var response = (
-            id: id,
-            result: result ?? { NilResponse() }
-        );
-        
-        this.prSendMessage(response);
+        // Don't sent empty messages as this produces response
+        // validation errors in some LSP clients (neovim).
+        if (id.notNil or: { result.notNil } ) {
+            var response = (
+                id: id,
+                result: result ?? { NilResponse() }
+            );
+            
+            this.prSendMessage(response);
+        }
     }
     
     prHandleRequest {
@@ -326,7 +330,8 @@ LSPConnection {
     
     prSendMessage {
         |dict|
-        var maxSize = 6000;
+		// Reccomended max UDP packet size (probably doesn't matter so much if its localhost)
+        var maxSize = 508;
         var offset = 0;
         var packetSize;
         var message = this.prEncodeMessage(dict);
@@ -338,7 +343,7 @@ LSPConnection {
             socket.sendRaw(message);
         } {
             while { offset < messageSize } {
-                packetSize = min(messageSize, maxSize);
+                packetSize = min(messageSize - offset, maxSize);
                 socket.sendRaw(message[offset..(offset + packetSize - 1)]);
                 offset = offset + packetSize;
             }
