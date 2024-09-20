@@ -307,6 +307,8 @@ LSPDatabase {
             SCDocHTMLRenderer.renderMethod(stream, node, \genericMethod, method.ownerClass);
             ^stream.collection;
         } {
+            |e|
+            e.reportError;
             ^""
         }
     }
@@ -361,7 +363,7 @@ LSPDatabase {
     *getReferences {
         |word|
         var references = Class.findAllReferences(word.asSymbol);
-
+        
         ^references.collect {
             |method|
             this.renderMethodLocation(method)
@@ -390,11 +392,11 @@ LSPDatabase {
         var word;
         var isWord = {
             |ch|
-            ch.isAlphaNum or: { ch == $_ }
+            ch !? { ch.isAlphaNum or: { ch == $_ } } ?? { false }
         };
         
         Log('LanguageServer.quark').info("Searching line for a word: '%' at %:%", lineString, line, character);
-
+        
         if (not(isWord.(lineString[start])) and: {
             isWord.(lineString[(start - 1).max(0)])
         }) {
@@ -431,7 +433,7 @@ LSPDatabase {
             |line, lineNum|
             var start;
             var lastCharacter;
-
+            
             if ((start = line.findRegexp(startRe)).notEmpty) {
                 regionStack = regionStack.add((
                     start: (line: lineNum, character: 0, depth: regionDepth)
@@ -444,42 +446,42 @@ LSPDatabase {
                     nameStack = nameStack.add("[block %]".format(regions.size + nameStack.size));                                    
                 }
             };
-
+            
             if (regionStack.size > 0) {
                 line.do {
                     |character, i|
                     if (character == $") {
                         inString = inString.not;
                     };
-
+                    
                     if (character == $') {
                         inSymbol = inSymbol.not;
                     };
-
+                    
                     if (inString.not && inSymbol.not && (character == $/) && (lastCharacter == $/)) {
                         // "line % char %, inLineComment".format(lineNum, i).postln;
                         inLineComment = true;
                     };
-
+                    
                     if (inString.not && inSymbol.not && (character == $*) && (lastCharacter == $/)) {
                         inComment = true;
                     };
-
+                    
                     if (inString.not && inSymbol.not && (character == $/) && (lastCharacter == $*)) {
                         inComment = false;
                     };
-
+                    
                     if (inSymbol.not && inString.not && inLineComment.not && inComment.not) {
                         if (character == $() {
                             regionDepth = regionDepth + 1;
                             // "line %, regionDepth: %".format(lineNum, regionDepth).postln;
                         };
-
+                        
                         if (character == $)) {
                             regionDepth = regionDepth - 1;
                             // "line %, regionDepth: %".format(lineNum, regionDepth).postln;
                         };
-
+                        
                         if (regionStack.isEmpty.not and:{ regionStack.last[\start][\depth] == regionDepth }) {   
                             // "end region at %:% depth %".format(lineNum, i, regionDepth).postln;
                             regionStack.last.put(
@@ -492,10 +494,10 @@ LSPDatabase {
                             ));
                         }
                     };
-
+                    
                     lastCharacter = character;
                 };
-
+                
                 inLineComment = false;
             };
         };
@@ -515,7 +517,7 @@ LSPDatabase {
     *renderMethodWorkspaceSymbol {
         |method|
         ^(
-            name: 		method.name,
+            name: 		"%:%".format(method.ownerClass.name, method.name),
             kind: 		6, // method
             location: 	this.renderMethodLocation(method),
             containerName: method.ownerClass.name
