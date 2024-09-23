@@ -30,12 +30,33 @@ Navigate to the sc_language_server directory within that:
 
     cd sc_language_server
 
-Pip install to give your system the `sc-language-server` command.
+
+### Global installation
+
+Install the python program to give your system the `sc-language-server` command. This allows you to simply specify
+the `sc-language-server` command itself (plus any arguments) in your editor's LSP configuration rather than a full path to this directory.
+
+Two options for this are:
+
+#### Pip Install
+
+Run:
 
     python -m pip install .
 
-Once installed, the command will be available, but you will need to set this up to be executed by your editor.
+This might not work with an externally managed installation (e.g. managed by homebrew). If that is the case, please try installing with [pipx](#using-pipx).
 
+#### Using pipx
+
+Follow the instructions to install [pipx](https://github.com/pypa/pipx), and then run:
+
+    `pipx install .`
+
+### Post installation
+
+Once installed, the command will be available globally, but you will need to set this up to be executed by your editor.
+
+As an example see the setup for [Neovim](#neovim-lsp-configuration)
 
 ## Command-line Arguments
 
