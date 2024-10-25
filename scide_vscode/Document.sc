@@ -39,4 +39,3 @@ Document {
 
     *implementationClass { ^LSPDocument }
 }
-
