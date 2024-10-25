@@ -669,32 +669,3 @@ LSPDocumentChange {
         ]
     }
 }
-
-+String {
-    lineCharToIndex {
-        |line, character|
-        var currentIndex = 0;
-
-        line.do {
-            currentIndex = this.find("\n", false, currentIndex);
-
-            if (currentIndex.isNil) {
-                ^this.size
-            } {
-                currentIndex = currentIndex + 1
-            }
-        };
-
-        ^(currentIndex + character)
-    }
-}
-
-
-
-
-
-
-
-
-
-
