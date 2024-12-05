@@ -5,7 +5,7 @@ import pytest
 
 from sc_language_server import SCRunner
 
-# Mock with the current test file since SCRunner will complain if the sclang_path/config_path do not exist!
+# Mock with the current test file since SCRunner will complain if the sclang_path does not exist!
 current_file_path = os.path.abspath(__file__)
 
 
@@ -22,7 +22,6 @@ def sc_runner(mock_logger):
         send_port=57120,
         receive_port=57121,
         sclang_path=current_file_path,
-        config_path=current_file_path,
         ide_name="vscode",
     )
 
@@ -33,7 +32,6 @@ async def test_SCRunner_initialization(sc_runner):
     assert sc_runner.send_port == 57120
     assert sc_runner.receive_port == 57121
     assert sc_runner.sclang_path == current_file_path
-    assert sc_runner.config_path == current_file_path
     assert sc_runner.ide_name == "vscode"
 
 
