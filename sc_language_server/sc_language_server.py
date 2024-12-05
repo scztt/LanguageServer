@@ -188,7 +188,6 @@ class UDPReceiveToStdoutProtocol(asyncio.DatagramProtocol):
     def __write_message(self, message):
         sys.stdout.write(message)
         sys.stdout.flush()
-        """ self.__logger.info("RECEIVED MESSAGE FROM SERVER: %s", message) """
 
 
 class SCRunner:
@@ -200,16 +199,11 @@ class SCRunner:
     ##pylint: disable=too-many-instance-attributes
 
     defaults = {
-        "darwin": {
-            "sclang": "/Applications/SuperCollider.app/Contents/MacOS/sclang",
-            "config": "~/Library/Application Support/SuperCollider/sclang_conf.yaml",
-        }
+        "darwin": "/Applications/SuperCollider.app/Contents/MacOS/sclang",
+        "linux": "sclang",
     }
 
-    sys_defaults = defaults.get(sys.platform, {})
-    sclang_path = sys_defaults.get("sclang", "")
-    config_path = sys_defaults.get("config", "")
-
+    sclang_path = defaults.get(sys.platform, "")
     ide_name = "vscode"
     server_log_level = "warning"
     receive_port: int
@@ -229,7 +223,6 @@ class SCRunner:
         send_port: int,
         receive_port: int,
         sclang_path: str | None,
-        config_path: str | None,
         ide_name: str | None,
     ):
         """
@@ -243,10 +236,9 @@ class SCRunner:
 
         # Set the optional attributes if provided
         self.sclang_path = sclang_path or self.sclang_path
-        self.config_path = config_path or self.config_path
         self.ide_name = ide_name or self.ide_name
 
-    async def start(self) -> int:
+    async def start(self, extra_args: list[str] = []) -> int:
         """
         Starts a sclang subprocess, enabling the LSP server.
         Stdin/out are connected to the server via UDP.
@@ -255,9 +247,6 @@ class SCRunner:
             self.__stop_subprocess()
 
         my_env = os.environ.copy()
-
-        if not os.path.exists(self.sclang_path):
-            raise RuntimeError(f"The specified sclang path does not exist: {self.sclang_path}")
 
         additional_vars = {
             "SCLANG_LSP_ENABLE": "1",
@@ -268,23 +257,22 @@ class SCRunner:
 
         self.__logger.info("SC env vars: %s", repr(additional_vars))
 
-        command = [self.sclang_path, "-i", self.ide_name]
-        if self.config_path:
-            config = os.path.expanduser(os.path.expandvars(self.config_path))
-            if not os.path.exists(config):
-                raise RuntimeError(f"The specified config file does not exist: '{config}'")
-            command.extend(["-l", config])
+        command = [self.sclang_path, "-i", self.ide_name, *extra_args]
 
-        self.__logger.info(f"RUNNER: Launching SC with cmd: {command}")
+        self.__logger.info(f"RUNNER: Launching SC with cmd: '{command}'")
 
-        self.__subprocess = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            # stdin must be set to PIPE so stdin flows to the main program
-            stdin=asyncio.subprocess.PIPE,
-            env={**my_env, **additional_vars},
-        )
+        try:
+            self.__subprocess = await asyncio.create_subprocess_exec(
+                *command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                # stdin must be set to PIPE so stdin flows to the main program
+                stdin=asyncio.subprocess.PIPE,
+                env={**my_env, **additional_vars},
+            )
+        except FileNotFoundError as e:
+            e.strerror = ("The specified sclang path does not exist")
+            raise
 
         # receive stdout and stderr from sclang
         if self.__subprocess.stdout and self.__subprocess.stderr:
@@ -374,25 +362,28 @@ def create_arg_parser(sc_runner: type[SCRunner]):
     runner.
     """
     parser = argparse.ArgumentParser(
-        prog="sclsp_runner",
         description="Runs the SuperCollider LSP server and provides stdin/stdout access to it",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+example with extra sclang args (custom langPort and libraryConfig):
+  %(prog)s --sclang-path /path/to/sclang -v --log-file /path/to/logfile -- -u 57300 -l custom_sclang_conf.yaml
+'''
     )
+
+    print_default = '(default: %(default)s)'
 
     parser.add_argument(
         "--sclang-path",
         required=not sc_runner.sclang_path,
         default=sc_runner.sclang_path,
-    )
-    parser.add_argument(
-        "--config-path",
-        required=not sc_runner.config_path,
-        default=sc_runner.config_path,
+        help=print_default,
     )
     parser.add_argument("--send-port", type=int)
     parser.add_argument("--receive-port", type=int)
-    parser.add_argument("--ide-name", default=sc_runner.ide_name)
+    parser.add_argument("--ide-name", default=sc_runner.ide_name, help=print_default)
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-l", "--log-file")
+    parser.add_argument("extra_sclang_args", nargs="*", help="cli arguments for sclang (see example below)")
 
     return parser
 
@@ -430,7 +421,6 @@ def main():
         send_port=send_port,
         receive_port=receive_port,
         sclang_path=args.sclang_path,
-        config_path=args.config_path,
         ide_name=args.ide_name,
     )
 
@@ -446,7 +436,7 @@ def main():
     flags = fcntl.fcntl(0, fcntl.F_GETFL)
     fcntl.fcntl(0, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
-    sys.exit(asyncio.run(sc_runner.start()))
+    sys.exit(asyncio.run(sc_runner.start(args.extra_sclang_args)))
 
 
 if __name__ == "__main__":
