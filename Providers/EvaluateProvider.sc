@@ -3,7 +3,8 @@ EvaluateProvider : LSPProvider {
     classvar 
         <>resultStringLimit = 2000, 
         <>sourceCodeLineLimit=6,
-        <>skipErrorConstructors=true;
+        <>skipErrorConstructors=true,
+        <>improvedErrorReports=false;
     var resultPrefix="> ";
     var postResult=true;
     var <>postBeforeEvaluate="", <>postAfterEvaluate="";
@@ -77,7 +78,11 @@ EvaluateProvider : LSPProvider {
             } {
                 |error|
                 if (postResult) {
-                    error.postEvaluateBacktrace(this.class.evaluateMethod, error)
+                    if (improvedErrorReports) {
+                        error.postEvaluateBacktrace(this.class.evaluateMethod, error)
+                    } {
+                        error.reportError();
+                    }
                 };
                 deferredResult.value = (error: error.errorString);
             };
