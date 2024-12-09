@@ -1,6 +1,6 @@
 +Server {
     *suggestedDefaultPort {
-        ^InitializeProvider.suggestedDefaultPort ?? { 57110 }
+        ^InitializeProvider.suggestedServerPort ?? { 57110 }
     }
     
     *defaultNetAddr {
