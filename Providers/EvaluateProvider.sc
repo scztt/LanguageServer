@@ -3,10 +3,9 @@ EvaluateProvider : LSPProvider {
     classvar 
         <>resultStringLimit = 2000, 
         <>sourceCodeLineLimit=6,
-        <>skipErrorConstructors=true,
-        <>improvedErrorReports=false;
+        <>skipErrorConstructors=true;
     var resultPrefix="> ";
-    var postResult=true;
+    var postResult=true, improvedErrorReports=false;
     var <>postBeforeEvaluate="", <>postAfterEvaluate="";
     
     *methodNames {
@@ -23,7 +22,8 @@ EvaluateProvider : LSPProvider {
             |server, message, value|
             if (message == \clientOptions) {
                 resultPrefix = value['sclang.evaluateResultPrefix'] ?? {"> "};
-                postResult = value['sclang.postEvaluateResults'] ? true;
+                postResult = value['sclang.postEvaluateResults'] !? (_ == "true") ?? true;
+                improvedErrorReports = value['sclang.improvedErrorReports'] !? (_ == "true") ?? false;
             }
         })
     }
