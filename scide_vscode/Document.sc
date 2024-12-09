@@ -31,11 +31,11 @@ Document {
         |path, selectionStart=0, selectionLength=0, envir| 
         ^implementingClass.open(path, selectionStart=0, selectionLength=0, envir) 
     }
-
+    
     open { 
         |path, selectionStart=0, selectionLength=0, envir| 
         ^implementingClass.open(path, selectionStart=0, selectionLength=0, envir) 
     }
-
+    
     *implementationClass { ^LSPDocument }
 }
