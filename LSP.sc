@@ -227,7 +227,9 @@ LSPConnection {
                     "Provider % is returning *itself* from onReceived instead of providing an explicit nil or non-nil return value!".format(provider.class).warn;
                 };
                 
-                this.prHandleResponse(id, result);
+                // messages without ids are notifications and don't need a response
+                // (responses without ids cause errors in neovim)
+                id !? { this.prHandleResponse(id, result) }
             }, {
                 |error|
                 // @TODO handle error

@@ -5,7 +5,7 @@ EvaluateProvider : LSPProvider {
         <>sourceCodeLineLimit=6,
         <>skipErrorConstructors=true;
     var resultPrefix="> ";
-    var postResult=true;
+    var postResult=true, improvedErrorReports=false;
     var <>postBeforeEvaluate="", <>postAfterEvaluate="";
     
     *methodNames {
@@ -22,7 +22,8 @@ EvaluateProvider : LSPProvider {
             |server, message, value|
             if (message == \clientOptions) {
                 resultPrefix = value['sclang.evaluateResultPrefix'] ?? {"> "};
-                postResult = value['sclang.postEvaluateResults'] ? true;
+                postResult = value['sclang.postEvaluateResults'] !? (_ == "true") ?? true;
+                improvedErrorReports = value['sclang.improvedErrorReports'] !? (_ == "true") ?? false;
             }
         })
     }
@@ -77,7 +78,11 @@ EvaluateProvider : LSPProvider {
             } {
                 |error|
                 if (postResult) {
-                    error.postEvaluateBacktrace(this.class.evaluateMethod, error)
+                    if (improvedErrorReports) {
+                        error.postEvaluateBacktrace(this.class.evaluateMethod, error)
+                    } {
+                        error.reportError();
+                    }
                 };
                 deferredResult.value = (error: error.errorString);
             };
